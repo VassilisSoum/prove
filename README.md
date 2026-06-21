@@ -26,13 +26,16 @@ any project and the same rigor is available without re-deriving it.
 7. **Keep only on measured benefit — else revert.**
 8. **Record it durably**, wins and negatives alike.
 
-## Install (local)
+## Install
 
 ```bash
 # from anywhere
-/plugin marketplace add ~/IdeaProjects/personal/prove
+/plugin marketplace add VassilisSoum/prove
 /plugin install prove@prove
 ```
+
+> Developing locally? Point the marketplace at the repo on disk instead:
+> `/plugin marketplace add /path/to/prove`
 
 Then in any project:
 
