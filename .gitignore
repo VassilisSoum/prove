@@ -1,0 +1,7 @@
+# Generated experiment results (in real projects these ARE tracked; here the
+# template ships pristine, so ignore any local smoke-test output).
+templates/bench/results/*.json
+
+__pycache__/
+*.pyc
+.DS_Store

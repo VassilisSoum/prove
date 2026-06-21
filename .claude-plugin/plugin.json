@@ -1,0 +1,24 @@
+{
+  "name": "prove",
+  "version": "0.1.0",
+  "description": "Measure-before-you-ship discipline for Claude Code: a methodology skill, an experiment-reviewer agent, and a drop-in benchmark harness scaffold.",
+  "author": {
+    "name": "Vasilis Soumakis"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/VassilisSoum/prove",
+  "homepage": "https://github.com/VassilisSoum/prove",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "benchmarking",
+    "evaluation",
+    "scientific-method",
+    "ab-testing",
+    "verification"
+  ],
+  "skills": [
+    "./skills/empirical-method/",
+    "./skills/scaffold-benchmark/"
+  ]
+}

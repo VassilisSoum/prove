@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "prove",
+  "description": "Portable scientific-method toolkit for Claude Code projects",
+  "owner": {
+    "name": "Vasilis Soumakis"
+  },
+  "plugins": [
+    {
+      "name": "prove",
+      "description": "Measure-before-you-ship discipline: a methodology skill, an experiment-reviewer agent, and a drop-in benchmark harness scaffold.",
+      "version": "0.1.0",
+      "source": "./",
+      "homepage": "https://github.com/VassilisSoum/prove",
+      "category": "productivity",
+      "tags": [
+        "benchmarking",
+        "evaluation",
+        "scientific-method",
+        "ab-testing",
+        "verification"
+      ]
+    }
+  ],
+  "version": "0.1.0"
+}
