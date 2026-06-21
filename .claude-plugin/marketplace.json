@@ -9,7 +9,7 @@
     {
       "name": "prove",
       "description": "Measure-before-you-ship discipline: a methodology skill, an experiment-reviewer agent, and a drop-in benchmark harness scaffold.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "./",
       "homepage": "https://github.com/VassilisSoum/prove",
       "category": "productivity",
@@ -22,5 +22,5 @@
       ]
     }
   ],
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

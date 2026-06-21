@@ -102,9 +102,35 @@ def main() -> int:
     _now = datetime.now(timezone.utc)
     ts = _now.strftime("%Y%m%dT%H%M%S") + f"_{_now.microsecond // 1000:03d}Z"
     candidates = [n for n in arms if n != floor]
-    best = max(candidates, key=lambda n: agg[n]["pass_rate"]) if candidates else floor
+
+    # Rank by pass-rate, then by FEWEST failures. A confident-wrong answer (fail) is
+    # worse than a safe abstention (inconclusive), so on a pass-rate tie the arm with
+    # fewer fails wins. Pass-rate alone would arbitrarily crown whichever tied arm was
+    # registered first — even if it gets there with corrupting errors.
+    def _rank(n):
+        a = agg[n]
+        return (a["pass_rate"], -(a["fail"] / a["n"] if a["n"] else 0.0))
+
+    best = max(candidates, key=_rank) if candidates else floor
     best_lift = agg[best]["pass_rate"] - floor_rate
-    decision = "KEEP — measured benefit" if (best != floor and best_lift > 0) else "REVERT — no measured benefit"
+
+    # A "win" that introduces confident-wrong outcomes the floor never produced is a
+    # corrupting regression — the headline must NOT read as a clean KEEP.
+    floor_fail_rate = (agg[floor]["fail"] / agg[floor]["n"]) if (floor and agg[floor]["n"]) else 0.0
+    best_fail_rate = (agg[best]["fail"] / agg[best]["n"]) if agg[best]["n"] else 0.0
+    corrupting = best != floor and best_fail_rate > floor_fail_rate
+    if corrupting:
+        cautions.append(
+            f"Candidate '{best}' introduces confident-WRONG outcomes the floor did not have "
+            f"(fail rate {best_fail_rate:.0%} vs floor {floor_fail_rate:.0%}). A fail is worse "
+            f"than an abstention — a higher pass-rate bought with corrupting errors is not a win.")
+
+    if best == floor or best_lift <= 0:
+        decision = "REVERT — no measured benefit"
+    elif corrupting:
+        decision = "REVIEW — coverage up, but introduces corrupting failures the floor avoided"
+    else:
+        decision = "KEEP — measured benefit"
 
     record = {
         "ts": ts, "hypothesis": args.hypothesis, "lever": args.lever,
