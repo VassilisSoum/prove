@@ -1,5 +1,7 @@
 # prove
 
+[![ci](https://github.com/VassilisSoum/prove/actions/workflows/ci.yml/badge.svg)](https://github.com/VassilisSoum/prove/actions/workflows/ci.yml)
+
 **Stop shipping changes on vibes.**
 
 `prove` is the scientific method for Claude Code. When a change claims to be *better* —
