@@ -27,10 +27,10 @@ _EMPTY = {"", "none", "missing", "unknown", "n/a", "null"}
 
 def classify(output: str, expected: str, wrong: str = "") -> str:
     o = (output or "").strip()
-    if o.lower() in _EMPTY:
-        return "inconclusive"
-    if o == expected:
-        return "pass"
+    if o == expected:                 # check the real answer FIRST, so an empty-ish
+        return "pass"                 # expected token (e.g. "none", "n/a") still scores pass
     if wrong and o == wrong:
         return "wrong"
+    if o.lower() in _EMPTY:
+        return "inconclusive"
     return "fail"

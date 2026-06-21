@@ -51,6 +51,8 @@ ARMS: dict[str, Arm] = {}
 
 
 def register(arm: Arm) -> Arm:
+    if arm.name in ARMS:
+        raise ValueError(f"duplicate arm name {arm.name!r} — each arm needs a unique name")
     ARMS[arm.name] = arm
     return arm
 

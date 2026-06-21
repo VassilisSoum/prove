@@ -79,12 +79,18 @@ the `experimentalist` agent.
 
 - **Arm registry** with exactly one **floor** baseline; all arms run over the same
   cases at **equal budget**.
-- **Deterministic classifier** returning `pass` / `fail` / `inconclusive` by matching
-  the arm's **real output** against the case's `expected` token (never a proxy).
-  `inconclusive` is distinct from `fail`.
+- **Deterministic classifier** returning `pass` / `wrong` / `fail` / `inconclusive`
+  by matching the arm's **real output** against the case's `expected` (and optional
+  known-`wrong`) token — never a proxy. `wrong`/`fail` are confident-wrong (corrupting);
+  `inconclusive` is an abstention (a silent miss), and is kept distinct from both.
 - **Runner**: trials per (arm, case) → aggregate pass-rate → **lift vs floor** →
-  KEEP/REVERT verdict → write `results/<ts>.json` + append an `EXPERIMENTS.md` row,
-  **always** (negatives recorded too).
+  KEEP / REVIEW / REVERT verdict → write `results/<ts>.json` + append an
+  `EXPERIMENTS.md` row when present, **always** (negatives recorded too).
+
+The runner's `KEEP / REVIEW / REVERT` is the *mechanical* verdict on the numbers; the
+`experimentalist` agent's `APPROVE / REVERT / INSUFFICIENT` is the *review* verdict that
+can overrule it. Two actors, two vocabularies — by design (the gate exists to overrule
+a green headline).
 
 ## What stays the developer's call
 

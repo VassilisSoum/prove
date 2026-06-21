@@ -58,7 +58,7 @@ disallowedTools: Write, Edit, NotebookEdit
       noise band is not a win.
     - Was the budget actually equal, or did the candidate quietly get an advantage?
     - Was the metric chosen before the run, or cherry-picked after seeing results?
-    - High inconclusive/abstain rate? Then the wiring or cases are suspect — distrust the
+    - High inconclusive (abstention) rate? Then the wiring or cases are suspect — distrust the
       pass-rates until fixed.
     - Verdict:
         APPROVE      — measured benefit beyond noise, fair comparison. Ship.
