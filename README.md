@@ -57,6 +57,72 @@ python templates/bench/run.py \
 You'll get a per-arm lift table, a KEEP/REVERT verdict, a JSON in
 `templates/bench/results/`, and a new row in `templates/bench/EXPERIMENTS.md`.
 
+## Example: using it in a project
+
+Say your project has a search ranker and someone wants to swap exact keyword
+matching for a "fuzzy" substring ranker, on the hunch that it's better. Instead of
+believing the hunch, measure it.
+
+**1. Scaffold the harness into the repo**
+
+```
+/prove:scaffold-benchmark
+```
+
+drops `bench/` at the repo root (`registry.py`, `score.py`, `run.py`, `EXPERIMENTS.md`).
+
+**2. Point the arms at your real code** — edit `bench/registry.py`. One lever (the
+ranking method), a floor (the current production ranker), equal budget (both arms see
+the same queries), scored on the real outcome (did the top hit equal the right doc?):
+
+```python
+import search  # your project's module under test
+
+CASES = [
+    Case(id="q1", payload={"query": "how do I reset my password"}, expected="auth/reset.md"),
+    Case(id="q2", payload={"query": "rotate the api keys"},        expected="security/keys.md"),
+    Case(id="q3", payload={"query": "perform db migrations"},      expected="db/migrate.md"),
+    # ... ideally drawn from real usage, including queries the candidate might get WRONG
+]
+
+register(Arm(name="keyword", is_floor=True,                              # current production
+             run=lambda c: search.keyword_search(c.payload["query"])[0]))
+register(Arm(name="fuzzy",                                               # the proposed change
+             run=lambda c: search.fuzzy_search(c.payload["query"])[0]))
+```
+
+**3. Run it**
+
+```bash
+python bench/run.py --hypothesis "fuzzy ranking beats keyword ranking" \
+                    --lever "ranking: exact-overlap vs +substring" --trials 5
+```
+
+```
+  keyword          pass  30/40 ( 75%)  (floor)
+  fuzzy            pass  40/40 (100%)   lift +25%
+
+verdict: KEEP — measured benefit  (best candidate: fuzzy, lift +25%)
+
+cautions (the verdict above is only as trustworthy as these allow):
+  ⚠ Metric is DETERMINISTIC — trials added no information: effective n = 8 cases, not 40.
+  ⚠ Small case set (n=8). A lift here is SUGGESTIVE, not decisive. Add cases — especially
+    ADVERSARIAL ones that probe where the candidate should FAIL, not only where it should win.
+recorded -> results/<ts>.json  and a row in EXPERIMENTS.md
+```
+
+**4. Gate it with an independent review** (separate authoring from judging):
+
+> Have the `experimentalist` review this experiment.
+
+The reviewer checks the design and the result and may **overrule a green verdict** — here it
+returns `REVERT`, because the case set is small, hand-authored by the change's author, and has
+no cases probing fuzzy matching's false positives. That gap between "the harness says KEEP" and
+"the review says not yet" is the whole point: the number is necessary, not sufficient.
+
+**5. The ledger remembers.** Every run appends a row to `bench/EXPERIMENTS.md` — wins *and*
+the reverted attempts — so the same idea isn't re-tried on a hunch six months later.
+
 ## Design notes
 
 - **Advisory, not enforced.** No hooks, nothing blocks your tools. The discipline is
