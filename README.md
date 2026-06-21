@@ -227,11 +227,3 @@ in mind:
   measurable slice — the rest is design judgment.
 - **The experimentalist reviewer is a guardrail, not a mathematical proof.** It catches
   common ways a benchmark misleads; it can still miss things.
-
-## Directory submission blurb
-
-Copy-paste entry for awesome-lists and plugin directories:
-
-```
-- [Prove](https://github.com/VassilisSoum/prove) — The scientific method for Claude Code. Compare a baseline and candidate under equal budget, score real outcomes, produce KEEP / REVIEW / REVERT verdicts, and record every experiment in EXPERIMENTS.md.
-```
