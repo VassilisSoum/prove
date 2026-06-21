@@ -1,10 +1,18 @@
 # prove
 
-A Claude Code plugin that packages one habit: **measure a change before you ship it.**
+**Stop shipping changes on vibes.**
 
-It's a project-agnostic, measure-before-you-ship discipline: every behavior change
-goes through a falsifiable loop, and *negative results are first-class*. Drop it into
-any project and the same rigor is available without re-deriving it.
+`prove` is the scientific method for Claude Code. When a change claims to be *better* —
+a new ranker, a faster path, a tuned threshold, a different prompt or model — `prove`
+compares a **baseline** against the **candidate** under **equal budget**, scores the
+**real outcome** (not proxy confidence), and returns a **KEEP / REVIEW / REVERT**
+verdict. Every experiment — wins and negatives alike — is recorded in `EXPERIMENTS.md`.
+
+It's three things working together: a methodology skill, an independent reviewer agent,
+and a small dependency-free benchmark harness. You bring the question; the plugin builds
+and runs the experiment and an agent gates the result before you ship. It's a guided
+workflow inside Claude Code — not a standalone autonomous CLI, and not a substitute for
+your tests.
 
 ## What's in the box
 
@@ -14,6 +22,28 @@ any project and the same rigor is available without re-deriving it.
 | `scaffold-benchmark` | skill | Measures a proposed change *for* you: reads the diff/functions, scaffolds `bench/`, writes the arms + a starter case set (incl. adversarial), runs it, reports the verdict. You ask the question and eyeball the cases. |
 | `experimentalist` | agent | An independent reviewer that gates approval on measured evidence — refuses vague claims, recommends revert on no measured benefit. |
 | `templates/bench/` | scaffold | A tiny, dependency-free, runnable harness: arm registry + floor baseline, deterministic outcome scorer, trials runner, and an append-only `EXPERIMENTS.md` ledger. |
+
+## When should I use Prove?
+
+Prove is **not for every PR**. Use it when a change claims to be **better, not merely
+different** — where "better" is a measurable outcome.
+
+**Good fits**
+- AI / RAG / prompt / reranking changes
+- Performance improvements
+- Fraud / risk / scoring logic
+- Reconciliation logic
+- Retry / failure-handling changes
+- Any PR claiming "X is better than Y"
+
+**Poor fits** (skip Prove)
+- Pure refactors
+- Formatting
+- Simple CRUD changes
+- Dependency bumps — unless they claim measurable impact
+- Bug fixes already covered by deterministic tests
+
+> **Use Prove whenever a change claims to be _better_, not merely _different_.**
 
 ## The loop
 
@@ -49,6 +79,18 @@ reports the verdict. You confirm the drafted cases and read the result; the
 
 (Explicit entry points if you want them: `/prove:scaffold-benchmark` to measure a
 change, `/prove:empirical-method` to load the methodology.)
+
+## Verify your install
+
+From a clone of this repo:
+
+```bash
+bash scripts/doctor.sh
+```
+
+It checks that the plugin/skill/agent/template files exist, the manifests parse and
+agree on version, the Python compiles, the bundled example matches the template, and
+the example actually runs. CI runs the same script on every push and PR.
 
 ## Quickstart (the harness, standalone)
 
@@ -112,6 +154,43 @@ reverts), so the idea isn't re-tried on a hunch six months later.
 
 Your total effort: one question, a glance at the drafted cases, a read of the verdict.
 
+> A fully **runnable** version of this lives in
+> [`examples/simple-ranking/`](examples/simple-ranking/) — clone the repo and
+> `python bench/run.py` to see real `pass` / `wrong` / `inconclusive` output and a
+> REVIEW verdict (the candidate gains coverage but introduces one confidently-wrong
+> answer the floor avoided).
+
+## Using Prove with Pull Requests
+
+Prove isn't a required gate on every PR — run it on the ones that make a measurable
+claim. Two ways:
+
+- **Manually, before merge** — when a PR says "X is better than Y", ask Prove the
+  question, confirm the drafted cases, read the verdict, and paste a short summary into
+  the PR.
+- **In CI (optional)** — wire `bench/run.py` into a job for changes that touch a measured
+  component and post the result as a PR comment.
+
+Example questions a PR might ask:
+- "Should we ship `retrieval_v2` instead of `retrieval_v1`?"
+- "Should we ship the async reconciliation worker instead of the current worker?"
+- "Should we ship the new retry policy instead of the existing one?"
+
+An example summary you'd write in the PR (Prove gives you the numbers and the verdict;
+you phrase the takeaway):
+
+```
+PROVE REPORT
+Question: Should we ship async_reconciliation instead of current_reconciliation?
+Verdict:  REVIEW
+Reason:   Candidate improves throughput by 31%, but introduces 3 duplicate-processing
+          outcomes the current worker avoided (confidently-wrong > safe abstention).
+Ledger:   EXPERIMENTS.md updated.
+```
+
+For a typical backend project, only a small fraction of PRs need Prove — the ones whose
+value rests on a measurable claim.
+
 ## Design notes
 
 - **Advisory, not enforced.** No hooks, nothing blocks your tools. The discipline is
@@ -128,3 +207,31 @@ numbers from masquerading as improvements; equal budget stops an unfair advantag
 reading as a better approach; real-outcome scoring stops a proxy that correlates with
 success from standing in for it; trials stop a lucky run; the ledger stops disproven
 ideas from being re-tried on faith.
+
+## Known limitations
+
+Prove produces **evidence and a decision record**, not a proof. Read results with these
+in mind:
+
+- **Tiny benchmark sets are weak evidence.** A lift across a handful of cases is
+  suggestive, not decisive — grow the set, especially with adversarial cases.
+- **Deterministic repeated trials are not independent evidence.** Re-running a
+  deterministic metric N times is n=1 repeated N times; the effective sample size is the
+  number of *cases*. The harness flags this.
+- **Claude-authored cases need a human eye.** The plugin drafts cases and labels; if the
+  gold labels are wrong, the verdict is worthless. Confirm them.
+- **Prove does not replace unit or integration tests.** It compares approaches on an
+  outcome; it doesn't verify a change is correct in isolation. Keep your test suite.
+- **It's strongest when the outcome is objectively measurable.** For decisions that hinge
+  on incommensurable trade-offs (architecture, ops burden, cost), Prove measures only the
+  measurable slice — the rest is design judgment.
+- **The experimentalist reviewer is a guardrail, not a mathematical proof.** It catches
+  common ways a benchmark misleads; it can still miss things.
+
+## Directory submission blurb
+
+Copy-paste entry for awesome-lists and plugin directories:
+
+```
+- [Prove](https://github.com/VassilisSoum/prove) — The scientific method for Claude Code. Compare a baseline and candidate under equal budget, score real outcomes, produce KEEP / REVIEW / REVERT verdicts, and record every experiment in EXPERIMENTS.md.
+```

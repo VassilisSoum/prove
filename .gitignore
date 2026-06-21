@@ -8,3 +8,6 @@ __pycache__/
 
 # local agent/orchestration session state — never published
 .omc/
+
+# example run artifacts
+examples/**/bench/results/*.json

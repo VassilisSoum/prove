@@ -1,0 +1,24 @@
+$ python bench/run.py --trials 1 \
+    --hypothesis "candidate_rank should replace baseline_rank (handles more queries)" \
+    --lever "ranking: exact-overlap vs +substring"
+
+=== experiment <timestamp>  (trials=1/arm, cases=6) ===
+hypothesis: candidate_rank should replace baseline_rank (handles more queries)
+lever:      ranking: exact-overlap vs +substring
+  baseline         pass   4/6   ( 67%)  wrong   0  fail   0  inconcl   2  (floor)
+  candidate        pass   5/6   ( 83%)  wrong   1  fail   0  inconcl   0   lift +17%
+
+verdict: REVIEW — coverage up, but introduces corrupting failures the floor avoided  (best candidate: candidate, lift +17%)
+
+cautions (the verdict above is only as trustworthy as these allow):
+  ⚠ Small case set (n=6). A lift here is SUGGESTIVE, not decisive. Add cases — especially ADVERSARIAL ones that probe where the candidate should FAIL, not only where it should win.
+  ⚠ Candidate 'candidate' introduces confident-WRONG outcomes the floor did not have (wrong/fail rate 17% vs floor 0%). A wrong answer is worse than an abstention — a higher pass-rate bought with corrupting errors is not a win.
+recorded -> results/<timestamp>.json  and a row in EXPERIMENTS.md
+
+# Per-case outcomes (for reference):
+#   "reset my password"              -> baseline pass         candidate pass
+#   "issue a refund for this charge" -> baseline pass         candidate pass
+#   "i forgot my login"              -> baseline pass         candidate pass
+#   "perform db migrations"          -> baseline inconclusive candidate pass   (variant: floor abstains, candidate wins)
+#   "refunding the customer"         -> baseline inconclusive candidate pass   (variant: floor abstains, candidate wins)
+#   "redistribute traffic"           -> baseline pass         candidate wrong  (junk: floor abstains correctly, candidate hallucinates)

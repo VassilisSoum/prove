@@ -1,6 +1,6 @@
 {
   "name": "prove",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Measure-before-you-ship discipline for Claude Code: a methodology skill, an experiment-reviewer agent, and a drop-in benchmark harness scaffold.",
   "author": {
     "name": "Vasilis Soumakis"
