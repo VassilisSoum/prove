@@ -5,14 +5,19 @@ this guards against: optimising a number that correlates with success instead of
 success itself (high recall@k that still gets the task wrong; a faster function
 that returns the wrong answer). The value the arm actually produced is the truth.
 
-Three outcomes, deliberately distinct:
+Four outcomes, deliberately distinct:
   pass          -> the correct outcome
-  fail          -> a wrong outcome (incl. the known-wrong/stale token)
+  wrong         -> the case's known-wrong/stale token exactly (the anticipated trap)
+  fail          -> some other wrong outcome
   inconclusive  -> nothing actionable (the arm declined / produced no answer)
 
-`inconclusive` is NOT `fail`: an arm that abstains is doing less harm than an arm
-that confidently produces a wrong answer. Keep them separate so a harm analysis
-can tell "silent" from "corrupting".
+`wrong` and `fail` are both confident-wrong (corrupting); `wrong` is the strongest
+signal — the arm produced *exactly* the value the case flagged as the trap. The
+runner treats both as failures for pass-rate, but reports `wrong` separately.
+
+`inconclusive` is NOT a failure: an arm that abstains does less harm than one that
+confidently produces a wrong answer. Keeping them separate lets a harm analysis tell
+"silent" (abstain) from "corrupting" (wrong/fail).
 """
 
 from __future__ import annotations
@@ -26,4 +31,6 @@ def classify(output: str, expected: str, wrong: str = "") -> str:
         return "inconclusive"
     if o == expected:
         return "pass"
+    if wrong and o == wrong:
+        return "wrong"
     return "fail"

@@ -71,7 +71,7 @@ def main() -> int:
                 for _ in range(args.trials)
             ]
 
-    tally = {a: {"pass": 0, "fail": 0, "inconclusive": 0, "n": 0} for a in arms}
+    tally = {a: {"pass": 0, "wrong": 0, "fail": 0, "inconclusive": 0, "n": 0} for a in arms}
     for (name, _cid), outs in cells.items():
         for o in outs:
             tally[name][o] += 1
@@ -103,26 +103,30 @@ def main() -> int:
     ts = _now.strftime("%Y%m%dT%H%M%S") + f"_{_now.microsecond // 1000:03d}Z"
     candidates = [n for n in arms if n != floor]
 
-    # Rank by pass-rate, then by FEWEST failures. A confident-wrong answer (fail) is
-    # worse than a safe abstention (inconclusive), so on a pass-rate tie the arm with
-    # fewer fails wins. Pass-rate alone would arbitrarily crown whichever tied arm was
+    # Confident-wrong rate = known-wrong hits + other wrong answers, normalised. A
+    # confident-wrong answer is worse than a safe abstention (inconclusive).
+    def _cw_rate(n):
+        a = agg[n]
+        return ((a["wrong"] + a["fail"]) / a["n"]) if a["n"] else 0.0
+
+    # Rank by pass-rate, then by FEWEST confident-wrong outcomes. On a pass-rate tie the
+    # safer arm wins; pass-rate alone would arbitrarily crown whichever tied arm was
     # registered first — even if it gets there with corrupting errors.
     def _rank(n):
-        a = agg[n]
-        return (a["pass_rate"], -(a["fail"] / a["n"] if a["n"] else 0.0))
+        return (agg[n]["pass_rate"], -_cw_rate(n))
 
     best = max(candidates, key=_rank) if candidates else floor
     best_lift = agg[best]["pass_rate"] - floor_rate
 
     # A "win" that introduces confident-wrong outcomes the floor never produced is a
     # corrupting regression — the headline must NOT read as a clean KEEP.
-    floor_fail_rate = (agg[floor]["fail"] / agg[floor]["n"]) if (floor and agg[floor]["n"]) else 0.0
-    best_fail_rate = (agg[best]["fail"] / agg[best]["n"]) if agg[best]["n"] else 0.0
-    corrupting = best != floor and best_fail_rate > floor_fail_rate
+    floor_cw = _cw_rate(floor) if floor else 0.0
+    best_cw = _cw_rate(best)
+    corrupting = best != floor and best_cw > floor_cw
     if corrupting:
         cautions.append(
             f"Candidate '{best}' introduces confident-WRONG outcomes the floor did not have "
-            f"(fail rate {best_fail_rate:.0%} vs floor {floor_fail_rate:.0%}). A fail is worse "
+            f"(wrong/fail rate {best_cw:.0%} vs floor {floor_cw:.0%}). A wrong answer is worse "
             f"than an abstention — a higher pass-rate bought with corrupting errors is not a win.")
 
     if best == floor or best_lift <= 0:
@@ -153,22 +157,23 @@ def main() -> int:
         a = agg[name]
         tag = "  (floor)" if name == floor else f"   lift {a['pass_rate'] - floor_rate:+.0%}"
         print(f"  {name:16s} pass {a['pass']:>3}/{a['n']:<3} ({a['pass_rate']:>4.0%})"
-              f"  fail {a['fail']:>3}  inconcl {a['inconclusive']:>3}{tag}")
+              f"  wrong {a['wrong']:>3}  fail {a['fail']:>3}  inconcl {a['inconclusive']:>3}{tag}")
     print(f"\nverdict: {decision}  (best candidate: {best}, lift {best_lift:+.0%})")
     if cautions:
         print("\ncautions (the verdict above is only as trustworthy as these allow):")
         for c in cautions:
             print(f"  ⚠ {c}")
 
-    _append_ledger(record)
-    print(f"recorded -> results/{ts}.json  and a row in EXPERIMENTS.md")
+    appended = _append_ledger(record)
+    tail = "  and a row in EXPERIMENTS.md" if appended else "  (no EXPERIMENTS.md found — ledger row skipped)"
+    print(f"recorded -> results/{ts}.json{tail}")
     return 0
 
 
-def _append_ledger(record: dict) -> None:
+def _append_ledger(record: dict) -> bool:
     led = os.path.join(HERE, "EXPERIMENTS.md")
     if not os.path.exists(led):
-        return
+        return False
     agg = record["arms"]
     best = record["best"]
     # A caveated result must not read as a clean verdict in the ledger.
@@ -183,6 +188,7 @@ def _append_ledger(record: dict) -> None:
            f"| {decision} |\n")
     with open(led, "a") as f:
         f.write(row)
+    return True
 
 
 if __name__ == "__main__":

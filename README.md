@@ -61,6 +61,10 @@ python templates/bench/run.py \
 You'll get a per-arm lift table, a KEEP/REVERT verdict, a JSON in
 `templates/bench/results/`, and a new row in `templates/bench/EXPERIMENTS.md`.
 
+(In this repo the harness lives under `templates/bench/`. Once `scaffold-benchmark`
+drops it into a project it's just `bench/` — which is why the example below uses the
+shorter `bench/` paths.)
+
 ## Example: using it in a project
 
 Your project has a search ranker, and someone wants to swap exact keyword matching
