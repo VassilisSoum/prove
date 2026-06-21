@@ -111,10 +111,13 @@ can't state one, you don't have an experiment.
 
 ## How to run it
 
-- For a measurable behavioral change, use the **`bench/` harness** (drop it in with
-  the `scaffold-benchmark` skill if the project doesn't have it). Define arms +
-  cases in `registry.py`, run `run.py`, read the lift, let it write the ledger.
+- **Don't hand the developer a blank benchmark — author it for them.** When the
+  change is concrete code, invoke the **`scaffold-benchmark`** skill: it reads the
+  diff/functions, scaffolds `bench/` if needed, writes the arms + a drafted case set
+  (including adversarial cases), shows the cases for a quick OK, runs it, and reports
+  the lift. The developer's job shrinks to: ask the question, eyeball the cases, read
+  the verdict.
 - Keep **authoring and judging separate.** Don't approve your own experiment in the
   same pass. Hand the design (before) and the result (after) to the
-  **`experimentalist`** agent for an independent gate — it will refuse vague claims
-  and recommend revert on no measured benefit.
+  **`experimentalist`** agent for an independent gate — it refuses vague claims and
+  recommends revert on no measured benefit.
