@@ -1,0 +1,22 @@
+$ python bench/run.py --trials 5 --verbose \
+    --hypothesis "set-based membership beats naive rescans (fewer comparisons)" \
+    --lever "membership impl: naive scan vs set"
+
+=== experiment <timestamp>  (trials=5/arm, cases=3) ===
+hypothesis: set-based membership beats naive rescans (fewer comparisons)
+lever:      membership impl: naive scan vs set
+  numeric[present_500] floor median 1e+04 -> setbased 520  (+95%, better; 95% CI diff [9480, 9480])
+  numeric[present_2000] floor median 4e+04 -> setbased 2020  (+95%, better; 95% CI diff [3.798e+04, 3.798e+04])
+  numeric[absent_1000] floor median 2e+04 -> setbased 1020  (+95%, better; 95% CI diff [1.898e+04, 1.898e+04])
+
+verdict: KEEP — measured benefit  (best candidate: setbased)
+
+per-case:
+  [num] present_500        naive=10000.0  setbased=520.0
+  [num] present_2000       naive=40000.0  setbased=2020.0
+  [num] absent_1000        naive=20000.0  setbased=1020.0
+
+cautions (the verdict above is only as trustworthy as these allow):
+  ⚠ Metric is DETERMINISTIC — all 5 trials of every cell were identical. Trials added no information: effective n = 3 cases, NOT 15. Raising --trials cannot strengthen this; adding cases can.
+  ⚠ Small case set (n=3). A lift here is SUGGESTIVE, not decisive. Add cases — especially ADVERSARIAL ones that probe where the candidate should FAIL, not only where it should win.
+recorded -> results/<timestamp>.json  and a row in EXPERIMENTS.md

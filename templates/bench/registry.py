@@ -29,21 +29,32 @@ from typing import Callable
 
 @dataclass
 class Case:
-    """One scored situation. `payload` is whatever an arm needs to produce its
-    output; `expected` is the correct outcome token; `wrong` is an optional
-    known-wrong/stale token that sharpens scoring."""
+    """One scored situation.
+
+    `payload` is whatever an arm needs to produce its output.
+
+    kind="outcome" (default): the arm returns a token, scored against `expected`
+    (correct) and an optional `wrong` (known-wrong/stale token that sharpens scoring).
+
+    kind="numeric": the arm returns a NUMBER; the runner reports median/mean/p95 and a
+    bootstrap CI of (candidate - floor). Set `direction` to "lower" (e.g. latency, cost)
+    or "higher" (e.g. throughput, accuracy) so "better" is unambiguous. `expected`/`wrong`
+    are ignored for numeric cases."""
     id: str
     payload: dict = field(default_factory=dict)
     expected: str = ""
     wrong: str = ""
+    kind: str = "outcome"               # "outcome" | "numeric"
+    direction: str = "lower"            # numeric only: "lower" better, or "higher" better
+    label: str = ""                     # numeric only: optional human label/unit
 
 
 @dataclass
 class Arm:
-    """One approach under test. `run(case) -> str` produces the value to be
-    scored. Mark exactly one arm `is_floor=True`."""
+    """One approach under test. `run(case)` returns the value to be scored — a str for
+    outcome cases, a number for numeric cases. Mark exactly one arm `is_floor=True`."""
     name: str
-    run: Callable[[Case], str]
+    run: Callable[[Case], object]
     is_floor: bool = False
 
 
@@ -55,6 +66,25 @@ def register(arm: Arm) -> Arm:
         raise ValueError(f"duplicate arm name {arm.name!r} — each arm needs a unique name")
     ARMS[arm.name] = arm
     return arm
+
+
+def validate(arms=None) -> None:
+    """Fail early with a clear message on a malformed experiment, instead of a confusing
+    downstream error. Called by run.py before a run."""
+    arms = list(ARMS) if arms is None else arms
+    floors = [n for n in arms if ARMS[n].is_floor]
+    if len(floors) != 1:
+        raise ValueError(
+            f"expected exactly one floor arm (is_floor=True), found {len(floors)}: {floors}. "
+            "The floor is the honest current/do-nothing baseline lift is measured against.")
+    for c in CASES:
+        if getattr(c, "kind", "outcome") == "outcome" and not c.expected:
+            raise ValueError(
+                f"outcome case {c.id!r} has no `expected` value — there is nothing to score it "
+                "against. Set expected, or mark the case kind='numeric'.")
+        if getattr(c, "kind", "outcome") == "numeric" and c.direction not in ("lower", "higher"):
+            raise ValueError(
+                f"numeric case {c.id!r} has direction={c.direction!r}; must be 'lower' or 'higher'.")
 
 
 # ============================================================================

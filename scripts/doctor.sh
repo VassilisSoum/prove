@@ -53,25 +53,39 @@ else
 fi
 
 echo "== example harness matches the template (no drift) =="
-for f in run.py score.py; do
-    if diff -q "templates/bench/$f" "examples/simple-ranking/bench/$f" >/dev/null 2>&1; then
-        ok "examples/simple-ranking/bench/$f == templates/bench/$f"
-    else
-        bad "drift: examples/simple-ranking/bench/$f differs from templates/bench/$f"
-    fi
+for ex in examples/*/; do
+    [ -d "$ex/bench" ] || continue
+    for f in run.py score.py; do
+        if diff -q "templates/bench/$f" "$ex/bench/$f" >/dev/null 2>&1; then
+            ok "${ex}bench/$f == templates/bench/$f"
+        else
+            bad "drift: ${ex}bench/$f differs from templates/bench/$f"
+        fi
+    done
 done
 
-echo "== example runs =="
+echo "== examples run =="
 # Run in a throwaway copy so the check never mutates the tracked example
 # (run.py appends to EXPERIMENTS.md and writes results/).
-tmp="$(mktemp -d)"
-cp -r examples/simple-ranking "$tmp/ex"
-if ( cd "$tmp/ex" && "$PY" bench/run.py --trials 1 >/dev/null 2>&1 ); then
-    ok "examples/simple-ranking ran (exit 0)"
+for ex in examples/*/; do
+    [ -d "$ex/bench" ] || continue
+    tmp="$(mktemp -d)"
+    cp -r "$ex" "$tmp/ex"
+    if ( cd "$tmp/ex" && "$PY" bench/run.py --trials 2 >/dev/null 2>&1 ); then
+        ok "$ex ran (exit 0)"
+    else
+        bad "$ex failed to run"
+    fi
+    rm -rf "$tmp"
+done
+
+echo "== unit tests (if pytest available) =="
+if "$PY" -c "import pytest" >/dev/null 2>&1; then
+    if "$PY" -m pytest -q >/dev/null 2>&1; then ok "pytest passed"; else bad "pytest failed"; fi
 else
-    bad "example failed to run"
+    ok "pytest not installed — skipping (CI runs it)"
 fi
-rm -rf "$tmp" templates/bench/__pycache__ 2>/dev/null
+rm -rf templates/bench/__pycache__ tests/__pycache__ 2>/dev/null
 
 echo
 if [ "$fail" -eq 0 ]; then

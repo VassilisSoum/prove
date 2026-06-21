@@ -23,7 +23,7 @@ your tests.
 | `empirical-method` | skill | The playbook: the 8-step loop, the falsifiability table, the anti-patterns. Auto-triggers when you're about to claim an improvement or ship/approve a behavior change. |
 | `scaffold-benchmark` | skill | Measures a proposed change *for* you: reads the diff/functions, scaffolds `bench/`, writes the arms + a starter case set (incl. adversarial), runs it, reports the verdict. You ask the question and eyeball the cases. |
 | `experimentalist` | agent | An independent reviewer that gates approval on measured evidence — refuses vague claims, recommends revert on no measured benefit. |
-| `templates/bench/` | scaffold | A tiny, dependency-free, runnable harness: arm registry + floor baseline, deterministic outcome scorer, trials runner, and an append-only `EXPERIMENTS.md` ledger. |
+| `templates/bench/` | scaffold | A tiny, dependency-free, runnable harness: arm registry + floor baseline, outcome **and** numeric scoring (with a bootstrap noise-band), a trials runner, and an append-only `EXPERIMENTS.md` ledger. |
 
 ## When should I use Prove?
 
@@ -91,8 +91,9 @@ bash scripts/doctor.sh
 ```
 
 It checks that the plugin/skill/agent/template files exist, the manifests parse and
-agree on version, the Python compiles, the bundled example matches the template, and
-the example actually runs. CI runs the same script on every push and PR.
+agree on version, the Python compiles, the bundled examples match the template (no
+drift), the examples run, and the unit tests pass (`pytest`, if installed). CI runs the
+same script — plus the test suite — on every push and PR.
 
 ## Quickstart (the harness, standalone)
 
@@ -156,11 +157,26 @@ reverts), so the idea isn't re-tried on a hunch six months later.
 
 Your total effort: one question, a glance at the drafted cases, a read of the verdict.
 
-> A fully **runnable** version of this lives in
-> [`examples/simple-ranking/`](examples/simple-ranking/) — clone the repo and
-> `python bench/run.py` to see real `pass` / `wrong` / `inconclusive` output and a
-> REVIEW verdict (the candidate gains coverage but introduces one confidently-wrong
-> answer the floor avoided).
+> Two fully **runnable** examples live in [`examples/`](examples/):
+> [`simple-ranking/`](examples/simple-ranking/) (outcome scoring — `pass` / `wrong` /
+> `inconclusive` and a REVIEW verdict where the candidate gains coverage but introduces
+> one confidently-wrong answer the floor avoided) and
+> [`numeric-cost/`](examples/numeric-cost/) (a **numeric** metric — median/p95 + a
+> bootstrap confidence interval). Clone the repo and `python bench/run.py`.
+
+## Outcome vs numeric metrics
+
+A case is one of two kinds:
+
+- **outcome** (default) — the arm returns a token scored `pass` / `wrong` / `fail` /
+  `inconclusive`. A confidently-wrong answer (`wrong`/`fail`) is treated as worse than a
+  safe abstention (`inconclusive`).
+- **numeric** — set `kind="numeric"` and `direction="lower"|"higher"`; the arm returns a
+  number (latency, cost, throughput…). The runner reports median/mean/p95 and a **bootstrap
+  confidence interval of (candidate − floor)**, so a stochastic "+X%" only counts as a win
+  if it's beyond run-to-run noise; a metric that regresses beyond noise is flagged.
+
+`--verbose` prints a per-case × arm table; every result JSON also records per-case detail.
 
 ## Using Prove with Pull Requests
 
@@ -192,6 +208,17 @@ Ledger:   EXPERIMENTS.md updated.
 
 For a typical backend project, only a small fraction of PRs need Prove — the ones whose
 value rests on a measurable claim.
+
+**Gating a CI job.** `bench/run.py` takes `--fail-on` so a job can block on the verdict,
+and `scripts/pr_summary.py` turns the result JSON into the PROVE REPORT block above:
+
+```bash
+python bench/run.py --trials 25 --fail-on REVERT,REVIEW \
+  --hypothesis "ship retrieval_v2 instead of retrieval_v1?" --lever "retriever: v1 -> v2"
+python scripts/pr_summary.py bench/results/*.json   # post this as a PR comment
+```
+
+(`--fail-on` is opt-in — by default Prove is advisory and never blocks.)
 
 ## Design notes
 
